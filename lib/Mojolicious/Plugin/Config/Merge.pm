@@ -8,6 +8,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::Util 'decamelize';
 
 use Module::Load;
+use File::Basename        'basename';
 use File::Spec::Functions 'file_name_is_absolute';
 
 use Try::Tiny;
@@ -40,19 +41,19 @@ sub register {
 		:                             basename(   $ENV{MOJO_EXE} )
 		;
 
+	$path =~ s/\.(?:pl|t)$//i;
+
 	# Absolute paths
 	my $abs_path
-		= file_name_is_absolute $path ? $path
-		:          $app->home->rel_dir( $path )
-		;
+		= file_name_is_absolute( $path ) ? $path : $app->home->to_string;
 
 	my $config
 		= try {
-			$self->load_config( $abs_path, $conf, $app)
+			$self->load_config( $abs_path, $conf, $app );
 		}
 		catch {
 			load 'Carp';
-			croak $_;
+			Carp::croak $_;
 		};
 }
 
