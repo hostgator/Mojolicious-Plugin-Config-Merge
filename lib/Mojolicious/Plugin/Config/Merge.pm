@@ -1,4 +1,5 @@
 package Mojolicious::Plugin::Config::Merge;
+use 5.010;
 use strict;
 use warnings;
 
@@ -8,12 +9,12 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::Util 'decamelize';
 
 use Module::Load;
-use File::Basename        'basename';
 use File::Spec::Functions 'file_name_is_absolute';
 
 use Try::Tiny;
 
 # VERSION
+
 
 sub load_config {
 	my ( $self, $path, $conf, $app ) = @_;
@@ -31,21 +32,24 @@ sub load_config {
 }
 
 sub register {
-	my ($self, $app, $conf) = @_;
+	my ( $self, $app, $conf ) = @_;
 
 	# Config path
 	my $path
 		= defined $conf->{path}     ? $conf->{path}
 		: defined $ENV{MOJO_CONFIG} ? $ENV{MOJO_CONFIG}
 		: defined $ENV{MOJO_APP}    ? decamelize( $ENV{MOJO_APP} )
-		:                             basename(   $ENV{MOJO_EXE} )
+		:                             undef
 		;
 
-	$path =~ s/\.(?:pl|t)$//i;
+	$path =~ s/\.(?:pl|t)$//i if $path;
 
 	# Absolute paths
 	my $abs_path
-		= file_name_is_absolute( $path ) ? $path : $app->home->to_string;
+		= file_name_is_absolute( $path ) ? $path
+		: defined $path                  ? $app->home->rel_dir( $path )
+		:                                  $app->home->to_string
+		;
 
 	my $config
 		= try {
@@ -53,7 +57,7 @@ sub register {
 		}
 		catch {
 			load 'Carp';
-			Carp::croak $_;
+			Carp::confess $_;
 		};
 }
 
@@ -63,8 +67,10 @@ sub register {
 
 =head1 SYNOPSIS
 
-	use Mojolicious::Plugin::Config::Merge;
+	use Mojolicious::Lite;
 
-	my $obj = Mojolicious::Plugin::Config::Merge->new;
+	my $config = plugin 'Config::Merge';
+
+	my $val = $config->('confname.key.val');
 
 =cut
