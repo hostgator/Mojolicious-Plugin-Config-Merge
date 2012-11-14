@@ -17,7 +17,7 @@ use Try::Tiny;
 
 
 sub _load_config {
-	my ( $self, $path, $conf, $app ) = @_;
+	my ( $self, $path, $app ) = @_;
 
 	$app->log->debug(qq{Reading config files in "$path".});
 
@@ -60,7 +60,7 @@ sub register {
 	my $config
 		= try {
 			# cm isa Config::Merge
-			my $cm = $self->_load_config( $abs_path, $conf, $app );
+			my $cm = $self->_load_config( $abs_path, $app );
 
 			my $conf_hash = $cm->();
 
