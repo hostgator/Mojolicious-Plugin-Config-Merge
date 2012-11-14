@@ -59,9 +59,10 @@ sub register {
 
 	my $config
 		= try {
-			my $conf = $self->_load_config( $abs_path, $conf, $app );
+			# cm isa Config::Merge
+			my $cm = $self->_load_config( $abs_path, $conf, $app );
 
-			my $conf_hash = $conf->();
+			my $conf_hash = $cm->();
 
 			# get the current mojo hashref
 			my $current = $app->defaults( config => $app->config )->config;
@@ -69,7 +70,7 @@ sub register {
 			# merge : allows app->config to behave as expected
 			%$current = ( %$current, %$conf_hash );
 
-			return $conf;
+			return $cm;
 		}
 		catch {
 			load 'Carp';
