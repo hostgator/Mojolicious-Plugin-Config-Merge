@@ -16,18 +16,24 @@ use Try::Tiny;
 # VERSION
 
 
-sub load_config {
+sub _load_config {
 	my ( $self, $path, $conf, $app ) = @_;
 
 	$app->log->debug(qq{Reading config files in "$path".});
 
 	my $mode = $app->mode;
+
+	$app->log->debug(qq{Mode is "$mode".});
+
+	my $debug = $app->log->is_debug ? 1 : 0;
+
 	load 'Config::Merge';
 
 	return Config::Merge->new(
 		path     => $path,
-		is_local => [ qr/^.*\.$mode/ ],
-		skip     => [ qr/^(?:lib|bin|share|t|)$/, qr/^META/, qr/Makefile|Build/i ],
+		is_local => qr/^$mode|^.*\.$mode/,
+		skip     => [ qr/^$path\/(?:lib|bin|share|t|)$/, qr/^META/, qr/\.t$/, qr/Makefile|Build/i ],
+		debug    => $debug,
 	);
 }
 
@@ -53,12 +59,25 @@ sub register {
 
 	my $config
 		= try {
-			$self->load_config( $abs_path, $conf, $app );
+			my $conf = $self->_load_config( $abs_path, $conf, $app );
+
+			my $conf_hash = $conf->();
+
+			# get the current mojo hashref
+			my $current = $app->defaults( config => $app->config )->config;
+
+			# merge : allows app->config to behave as expected
+			%$current = ( %$current, %$conf_hash );
+
+			return $conf;
 		}
 		catch {
 			load 'Carp';
 			Carp::confess $_;
 		};
+
+	# return Config::Merge object if you'd rather actually use that
+	return $config;
 }
 
 1;
